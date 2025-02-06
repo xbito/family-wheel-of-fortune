@@ -39,6 +39,21 @@ function App() {
     setManagementMode('none');
   };
 
+  const handleUpdateScenarios = (updatedScenarios: Scenario[]) => {
+    // Find if the current scenario's ID has changed
+    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    const updatedCurrentScenario = currentScenario 
+      ? updatedScenarios.find(s => s.name === currentScenario.name)
+      : null;
+
+    // If we found the updated scenario and its ID changed, update currentScenarioId
+    if (updatedCurrentScenario && updatedCurrentScenario.id !== currentScenarioId) {
+      setCurrentScenarioId(updatedCurrentScenario.id);
+    }
+
+    setScenarios(updatedScenarios);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 p-8">
       <div className="max-w-4xl mx-auto">
@@ -91,7 +106,7 @@ function App() {
         ) : managementMode === 'scenarios' ? (
           <ScenarioManager
             scenarios={scenarios}
-            onUpdateScenarios={setScenarios}
+            onUpdateScenarios={handleUpdateScenarios}
             onClose={() => setManagementMode('none')}
           />
         ) : (

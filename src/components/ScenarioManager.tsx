@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import type { Scenario } from '../types';
 
 interface ScenarioManagerProps {
@@ -10,12 +10,13 @@ interface ScenarioManagerProps {
 
 export function ScenarioManager({ scenarios, onUpdateScenarios, onClose }: ScenarioManagerProps) {
   const [newScenarioName, setNewScenarioName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   
   const addScenario = () => {
     if (newScenarioName.trim()) {
       const id = newScenarioName.toLowerCase().replace(/\s+/g, '-');
       
-      // Check if ID already exists
       if (scenarios.some(s => s.id === id)) {
         alert('A scenario with this name already exists');
         return;
@@ -32,13 +33,46 @@ export function ScenarioManager({ scenarios, onUpdateScenarios, onClose }: Scena
     }
   };
   
+  const startEditing = (scenario: Scenario) => {
+    setEditingId(scenario.id);
+    setEditingName(scenario.name);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const saveEditing = (scenario: Scenario) => {
+    if (editingName.trim() && editingName !== scenario.name) {
+      const newId = editingName.toLowerCase().replace(/\s+/g, '-');
+      
+      // Check if new ID would conflict with existing scenario (excluding current one)
+      if (scenarios.some(s => s.id !== scenario.id && s.id === newId)) {
+        alert('A scenario with this name already exists');
+        return;
+      }
+
+      onUpdateScenarios(
+        scenarios.map(s => 
+          s.id === scenario.id 
+            ? { ...s, id: newId, name: editingName.trim() }
+            : s
+        )
+      );
+    }
+    cancelEditing();
+  };
+  
   const removeScenario = (id: string) => {
     onUpdateScenarios(scenarios.filter(s => s.id !== id));
   };
   
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent, action: () => void) => {
     if (e.key === 'Enter') {
-      addScenario();
+      action();
+    } else if (e.key === 'Escape') {
+      cancelEditing();
     }
   };
   
@@ -60,7 +94,7 @@ export function ScenarioManager({ scenarios, onUpdateScenarios, onClose }: Scena
             type="text"
             value={newScenarioName}
             onChange={(e) => setNewScenarioName(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyPress={(e) => handleKeyPress(e, addScenario)}
             placeholder="Add new scenario (e.g., Lunch Choice)"
             className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             maxLength={30}
@@ -81,20 +115,62 @@ export function ScenarioManager({ scenarios, onUpdateScenarios, onClose }: Scena
               key={scenario.id}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
-              <div>
-                <span className="font-medium">{scenario.name}</span>
-                <span className="text-sm text-gray-500 ml-2">
-                  ({scenario.options.length} options)
-                </span>
+              <div className="flex-1 flex items-center gap-2">
+                {editingId === scenario.id ? (
+                  <input
+                    type="text"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    onKeyPress={(e) => handleKeyPress(e, () => saveEditing(scenario))}
+                    className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    maxLength={30}
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <span className="font-medium">{scenario.name}</span>
+                    <span className="text-sm text-gray-500">
+                      ({scenario.options.length} options)
+                    </span>
+                  </>
+                )}
               </div>
-              <button
-                onClick={() => removeScenario(scenario.id)}
-                className="p-1 text-red-500 hover:text-red-600 transition-colors"
-                disabled={scenarios.length <= 1}
-                title={scenarios.length <= 1 ? "Can't delete the last scenario" : "Delete scenario"}
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {editingId === scenario.id ? (
+                  <>
+                    <button
+                      onClick={() => saveEditing(scenario)}
+                      className="p-1 text-green-500 hover:text-green-600 transition-colors"
+                      title="Save changes"
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      className="p-1 text-gray-500 hover:text-gray-600 transition-colors"
+                      title="Cancel editing"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => startEditing(scenario)}
+                    className="p-1 text-blue-500 hover:text-blue-600 transition-colors"
+                    title="Edit scenario"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => removeScenario(scenario.id)}
+                  className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                  disabled={scenarios.length <= 1}
+                  title={scenarios.length <= 1 ? "Can't delete the last scenario" : "Delete scenario"}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
