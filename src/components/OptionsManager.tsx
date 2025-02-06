@@ -1,23 +1,30 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import type { Scenario } from '../types';
 
 interface OptionsManagerProps {
-  options: string[];
-  setOptions: (options: string[]) => void;
+  scenario: Scenario;
+  onUpdateScenario: (updatedScenario: Scenario) => void;
 }
 
-export function OptionsManager({ options, setOptions }: OptionsManagerProps) {
+export function OptionsManager({ scenario, onUpdateScenario }: OptionsManagerProps) {
   const [newOption, setNewOption] = useState('');
 
   const addOption = () => {
-    if (newOption.trim() && options.length < 8) {
-      setOptions([...options, newOption.trim()]);
+    if (newOption.trim() && scenario.options.length < 8) {
+      onUpdateScenario({
+        ...scenario,
+        options: [...scenario.options, newOption.trim()]
+      });
       setNewOption('');
     }
   };
 
   const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
+    onUpdateScenario({
+      ...scenario,
+      options: scenario.options.filter((_, i) => i !== index)
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -28,7 +35,7 @@ export function OptionsManager({ options, setOptions }: OptionsManagerProps) {
 
   return (
     <div className="bg-white rounded-lg p-6 shadow-xl">
-      <h2 className="text-2xl font-bold mb-4">Manage Bathroom Options</h2>
+      <h2 className="text-2xl font-bold mb-4">Manage {scenario.name} Options</h2>
       
       <div className="space-y-4">
         <div className="flex gap-2">
@@ -37,13 +44,13 @@ export function OptionsManager({ options, setOptions }: OptionsManagerProps) {
             value={newOption}
             onChange={(e) => setNewOption(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Add new bathroom option"
+            placeholder={`Add new ${scenario.name.toLowerCase()} option`}
             className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             maxLength={30}
           />
           <button
             onClick={addOption}
-            disabled={!newOption.trim() || options.length >= 8}
+            disabled={!newOption.trim() || scenario.options.length >= 8}
             className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-300 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -52,7 +59,7 @@ export function OptionsManager({ options, setOptions }: OptionsManagerProps) {
         </div>
 
         <div className="space-y-2">
-          {options.map((option, index) => (
+          {scenario.options.map((option, index) => (
             <div
               key={index}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -68,7 +75,7 @@ export function OptionsManager({ options, setOptions }: OptionsManagerProps) {
           ))}
         </div>
 
-        {options.length >= 8 && (
+        {scenario.options.length >= 8 && (
           <p className="text-red-500 text-sm">
             Maximum number of options (8) reached
           </p>

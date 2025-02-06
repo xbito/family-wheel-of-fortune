@@ -114,7 +114,7 @@ export function WheelGame({ options }: WheelGameProps) {
                     }}
                   >
                     {/* Segment divider lines */}
-                    <div className="absolute left-1/2 h-1/2 border-r border-white/30 transform -translate-x-1/2" />
+                    <div className="absolute left-1/2 h-1/2 border-r border-white transform -translate-x-1/2" />
                   </div>
                 );
               })}
@@ -129,8 +129,8 @@ export function WheelGame({ options }: WheelGameProps) {
           {/* Pointer */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-8 h-12 z-10">
             <div className="w-full h-full relative">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 bg-red-600 transform -translate-x-1/2" style={{ clipPath: 'polygon(50% 0, 100% 100%, 0 100%)' }} />
-              <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-6 bg-red-400 transform -translate-x-1/2" style={{ clipPath: 'polygon(50% 0, 100% 100%, 0 100%)' }} />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 bg-red-600 transform -translate-x-1/2" style={{ clipPath: 'polygon(50% 100%, 100% 0, 0 0)' }} />
+              <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-6 bg-red-400 transform -translate-x-1/2" style={{ clipPath: 'polygon(50% 100%, 100% 0, 0 0)' }} />
             </div>
           </div>
         </div>
