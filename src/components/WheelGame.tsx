@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+import { Bug } from 'lucide-react';
+import { PieChart, Pie, Cell, Label } from 'recharts';
 
 interface WheelGameProps {
   options: string[];
@@ -8,83 +10,93 @@ export function WheelGame({ options }: WheelGameProps) {
   const [spinning, setSpinning] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
+  const [debugMode, setDebugMode] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Create alternating pattern: option1, option2, option3, option1, option2, option3, etc.
-  const expandedOptions = Array.from({ length: 3 }, () => options).flat();
+  // Base colors for the wheel
+  const COLORS = [
+    '#EF4444', // red-500
+    '#3B82F6', // blue-500
+    '#10B981', // green-500
+    '#F59E0B', // yellow-500
+    '#8B5CF6', // purple-500
+    '#EC4899', // pink-500
+    '#6366F1', // indigo-500
+    '#F97316'  // orange-500
+  ];
+
+  // Format data for Recharts
+  const data = options.map(option => ({
+    name: option,
+    value: 1 // Equal segments
+  }));
+
+  // Create unique gradient IDs for each segment
+  const getGradientId = (index: number) => `wheelGradient-${index}`;
 
   const spinWheel = () => {
     if (spinning) return;
-    
     setSpinning(true);
     setWinner(null);
-    
-    // Increased number of spins (15-20 full rotations) plus random angle
-    const spins = 15 + Math.random() * 5;
+
+    const spins = 8 + Math.random() * 2;
     const extraAngle = Math.random() * 360;
     const totalRotation = spins * 360 + extraAngle;
     
-    // Calculate winner based on final position
-    const winningIndex = Math.floor((360 - (totalRotation % 360)) / (360 / expandedOptions.length));
+    const finalAngle = 360 - (totalRotation % 360);
+    const segmentSize = 360 / options.length;
+    const winningIndex = Math.floor(finalAngle / segmentSize);
     
     setRotation(totalRotation);
 
-    // Play spin sound
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.play();
     }
 
-    // Increased spin duration to 8 seconds
     setTimeout(() => {
       setSpinning(false);
-      setWinner(expandedOptions[winningIndex]);
-      // Play victory sound
+      setWinner(options[winningIndex]);
       new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play();
-    }, 8000);
+    }, 6000);
   };
 
-  const getSegmentColor = (index: number) => {
-    const colors = [
-      'bg-red-500',
-      'bg-blue-500',
-      'bg-green-500',
-      'bg-yellow-500',
-      'bg-purple-500',
-      'bg-pink-500',
-      'bg-indigo-500',
-      'bg-orange-500'
-    ];
-    // Use the original option index to get consistent colors
-    const originalIndex = index % options.length;
-    return colors[originalIndex];
-  };
-
-  const getLegendColor = (index: number) => {
-    const colors = [
-      'bg-red-500',
-      'bg-blue-500',
-      'bg-green-500',
-      'bg-yellow-500',
-      'bg-purple-500',
-      'bg-pink-500',
-      'bg-indigo-500',
-      'bg-orange-500'
-    ];
-    return colors[index];
+  // Calculate segment midpoint for label placement
+  const getLabelPosition = (index: number) => {
+    const angle = ((360 / options.length) * index + (360 / options.length) / 2) * Math.PI / 180;
+    return {
+      x: Math.cos(angle - Math.PI / 2) * 120 + 192,
+      y: Math.sin(angle - Math.PI / 2) * 120 + 192
+    };
   };
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <div className="flex gap-12 items-start">
+      <div className="flex justify-center items-start gap-12">
+        {/* Debug Mode Toggle */}
+        <button
+          onClick={() => setDebugMode(!debugMode)}
+          className={`fixed top-4 right-4 p-2 rounded-full ${
+            debugMode ? 'bg-yellow-500' : 'bg-gray-200'
+          } hover:opacity-80 transition-colors`}
+          title={debugMode ? 'Disable debug mode' : 'Enable debug mode'}
+        >
+          <Bug className={`w-5 h-5 ${debugMode ? 'text-white' : 'text-gray-600'}`} />
+        </button>
+
         {/* Legend */}
         <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 shadow-lg">
           <h3 className="text-white font-semibold mb-3">Options</h3>
           <div className="space-y-2">
             {options.map((option, index) => (
               <div key={index} className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full ${getLegendColor(index)}`} />
-                <span className="text-white">{option}</span>
+                <div 
+                  className="w-4 h-4 rounded-full" 
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                />
+                <span className="text-white">
+                  {debugMode ? `[${index}] ` : ''}{option}
+                </span>
               </div>
             ))}
           </div>
@@ -92,49 +104,96 @@ export function WheelGame({ options }: WheelGameProps) {
 
         {/* Wheel */}
         <div className="relative w-96 h-96">
-          {/* Wheel Container with shadow and border */}
-          <div className="absolute w-full h-full rounded-full shadow-[0_0_25px_rgba(0,0,0,0.3)] border-8 border-gray-200 overflow-hidden">
-            {/* Spinning Wheel */}
+          <div className="absolute w-full h-full">
             <div
-              className="absolute w-full h-full rounded-full"
+              className="w-full h-full transition-transform"
               style={{
                 transform: `rotate(${rotation}deg)`,
-                transition: spinning ? 'transform 8s cubic-bezier(0.32, 0.94, 0.60, 1)' : 'none',
+                transition: spinning ? 'transform 6s cubic-bezier(0.32, 0.94, 0.60, 1)' : 'none',
               }}
             >
-              {expandedOptions.map((_, index) => {
-                const rotation = (360 / expandedOptions.length) * index;
-                return (
-                  <div
-                    key={index}
-                    className={`absolute w-full h-full ${getSegmentColor(index)} origin-center`}
-                    style={{
-                      transform: `rotate(${rotation}deg)`,
-                      clipPath: `polygon(50% 50%, 50% 0, ${50 + 50 * Math.tan(Math.PI / expandedOptions.length)}% 0)`,
-                    }}
-                  >
-                    {/* Segment divider lines */}
-                    <div className="absolute left-1/2 h-1/2 border-r border-white transform -translate-x-1/2" />
-                  </div>
-                );
-              })}
-              
-              {/* Center circle */}
-              <div className="absolute left-1/2 top-1/2 w-12 h-12 bg-white rounded-full shadow-md transform -translate-x-1/2 -translate-y-1/2 border-4 border-gray-200">
-                <div className="absolute inset-0 rounded-full shadow-inner" />
-              </div>
+              <PieChart width={384} height={384}>
+                <defs>
+                  {COLORS.map((color, index) => (
+                    <radialGradient key={index} id={getGradientId(index)}>
+                      <stop offset="0%" stopColor="#fff" stopOpacity={0.3} />
+                      <stop offset="50%" stopColor={color} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0.8} />
+                    </radialGradient>
+                  ))}
+                </defs>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={30}
+                  outerRadius={175}
+                  stroke="white"
+                  strokeWidth={2}
+                >
+                  {data.map((entry, index) => {
+                    const pos = getLabelPosition(index);
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={`url(#${getGradientId(index % COLORS.length)})`}
+                      >
+                        {/* Option Labels */}
+                        <text
+                          x={pos.x}
+                          y={pos.y}
+                          fill="white"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+                          }}
+                          className="select-none pointer-events-none"
+                        >
+                          {options[index]}
+                          {debugMode && (
+                            <tspan x={pos.x} y={pos.y - 20} fontSize="18px">
+                              [{index}]
+                            </tspan>
+                          )}
+                        </text>
+                      </Cell>
+                    );
+                  })}
+                </Pie>
+              </PieChart>
             </div>
+          </div>
+
+          {/* Center circle */}
+          <div className="absolute left-1/2 top-1/2 w-16 h-16 bg-gradient-to-b from-white to-gray-100 rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2 border-4 border-gray-200">
+            <div className="absolute inset-0 rounded-full shadow-inner" />
           </div>
           
           {/* Pointer */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-8 h-12 z-10">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-8 h-12 z-10 filter drop-shadow-lg">
             <div className="w-full h-full relative">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 bg-red-600 transform -translate-x-1/2" style={{ clipPath: 'polygon(50% 100%, 100% 0, 0 0)' }} />
-              <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-6 bg-red-400 transform -translate-x-1/2" style={{ clipPath: 'polygon(50% 100%, 100% 0, 0 0)' }} />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-b from-red-500 to-red-600" style={{ clipPath: 'polygon(50% 100%, 100% 0, 0 0)' }} />
+              <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-6 bg-gradient-to-b from-red-400 to-red-500" style={{ clipPath: 'polygon(50% 100%, 100% 0, 0 0)' }} />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Debug Info */}
+      {debugMode && (
+        <div className="text-white bg-black/30 p-4 rounded-lg space-y-1">
+          <p>Number of Options: {options.length}</p>
+          <p>Segment Size: {(360 / options.length).toFixed(2)}°</p>
+          <p>Current Rotation: {rotation.toFixed(2)}°</p>
+          <p>Final Angle: {(360 - (rotation % 360)).toFixed(2)}°</p>
+          <p>Winner Index: {winner ? options.indexOf(winner) : 'None'}</p>
+        </div>
+      )}
 
       <button
         onClick={spinWheel}
@@ -149,7 +208,7 @@ export function WheelGame({ options }: WheelGameProps) {
       {winner && (
         <div className="text-center animate-bounce">
           <h2 className="text-3xl font-bold text-white">
-            🎉 {winner} 🎉
+            🎉 {debugMode ? `[${options.indexOf(winner)}] ` : ''}{winner} 🎉
           </h2>
         </div>
       )}
